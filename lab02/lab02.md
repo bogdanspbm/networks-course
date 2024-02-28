@@ -56,6 +56,61 @@
 
 Вы можете положить код сервиса в отдельную директорию рядом с этим документом.
 
+
+```
+@RestController
+@RequestMapping("/api/v1")
+class ProductsController {
+
+    var counter = 0
+    val productsMap = hashMapOf<Int, ProductDTO>()
+
+    @PostMapping("/public/products")
+    fun addProduct(@RequestBody value: ProductDTO): ResponseEntity<*> {
+        value.id = counter++
+        productsMap[value.id!!] = value
+        return ResponseEntity(value, HttpStatus.OK)
+    }
+
+    @GetMapping("/public/products")
+    fun getAllProducts(): ResponseEntity<*> {
+        return ResponseEntity(productsMap.values.toList(), HttpStatus.OK)
+    }
+
+    @GetMapping("/public/products/{id}")
+    fun getProduct(@PathVariable id: Int): ResponseEntity<*> {
+        if (!productsMap.containsKey(id)) {
+            return ResponseEntity("{}", HttpStatus.INTERNAL_SERVER_ERROR)
+        }
+        return ResponseEntity(productsMap[id], HttpStatus.OK)
+    }
+
+    @DeleteMapping("/public/products/{id}")
+    fun deleteProduct(@PathVariable id: Int): ResponseEntity<*> {
+        if (!productsMap.containsKey(id)) {
+            return ResponseEntity("{}", HttpStatus.INTERNAL_SERVER_ERROR)
+        }
+
+        val product = productsMap[id];
+        productsMap.remove(id)
+
+        return ResponseEntity(product, HttpStatus.OK)
+    }
+
+    @PutMapping("/public/products/{id}")
+    fun updateProduct(@RequestBody value: ProductDTO, @PathVariable id: Int): ResponseEntity<*> {
+        if (!productsMap.containsKey(id)) {
+            return ResponseEntity("{}", HttpStatus.INTERNAL_SERVER_ERROR)
+        }
+
+        value.id = id
+        productsMap[value.id!!] = value
+        return ResponseEntity(value, HttpStatus.OK)
+    }
+
+}
+```
+
 ### Задание Б (3 балла)
 Продемонстрируйте работоспособность сервиса с помощью программы Postman
 (https://www.postman.com/downloads) и приложите соответствующие скрины, на которых указаны
