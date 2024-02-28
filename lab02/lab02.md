@@ -144,7 +144,33 @@ class ProductsController {
 ```
 
 #### Демонстрация работы
-todo
+```
+    @PostMapping("/public/products/{productID}/image")
+    fun uploadProductIcon(@PathVariable productID: Int, @RequestParam("file") file: MultipartFile): ResponseEntity<*> {
+        if (!productsMap.containsKey(productID)) {
+            return ResponseEntity("Product not found", HttpStatus.NOT_FOUND)
+        }
+        val fileName = file.originalFilename ?: "icon-$productID"
+        val targetLocation = iconsDir.resolve(fileName)
+        Files.copy(file.inputStream, targetLocation)
+
+        val product = productsMap[productID]
+        product?.icon = fileName
+        return ResponseEntity.ok().build<Any>()
+    }
+
+    @GetMapping("/public/products/{productID}/image", produces = arrayOf("image/jpeg", "image/png"))
+    fun getProductIcon(@PathVariable productID: Int): ResponseEntity<*> {
+        val product = productsMap[productID] ?: return ResponseEntity("Product not found", HttpStatus.NOT_FOUND)
+        val iconPath = product.icon?.let { iconsDir.resolve(it) } ?: return ResponseEntity("Icon not found", HttpStatus.NOT_FOUND)
+
+        val resource = Files.newInputStream(iconPath)
+        return ResponseEntity.ok().contentType(MediaType.parseMediaType("image/jpeg")).body(IOUtils.toByteArray(resource))
+    }
+```
+
+ <img src="images/image_f.png" width=500 />
+ <img src="images/image_g.png" width=500 />
 
 ---
 
