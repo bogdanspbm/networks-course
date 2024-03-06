@@ -26,7 +26,34 @@
 ```
 
 #### Демонстрация работы
-todo
+```
+ @GetMapping("/public/files/{fileName}")
+    fun downloadFile(@PathVariable fileName: String): ResponseEntity<ByteArray> {
+        val resource = File("./${fileName}")
+
+        // Проверка существует ли файл
+        if (!resource.exists()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null)
+        }
+
+        // Определение MIME типа файла
+        val contentType = MediaType.APPLICATION_OCTET_STREAM
+        val mediaType = try {
+            MediaType.parseMediaType(contentType.toString())
+        } catch (e: Exception) {
+            MediaType.APPLICATION_OCTET_STREAM
+        }
+
+        // Установка заголовков ответа
+        val headers = HttpHeaders()
+        headers.contentType = mediaType
+        headers.setContentDisposition(ContentDisposition.builder("inline").filename(fileName).build())
+
+        // Чтение файла в байтовый массив и возврат его в ответе
+        val fileContent = FileInputStream(resource).readBytes()
+        return ResponseEntity(fileContent, headers, HttpStatus.OK)
+    }
+```
 
 ### Б. Многопоточный веб-сервер (2 балла)
 Реализуйте многопоточный сервер, который мог бы обслуживать несколько запросов
