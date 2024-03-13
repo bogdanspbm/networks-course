@@ -60,8 +60,6 @@ class ProxyController {
 
     class CacheEntry(val responseBody: String, var lastModified: Long = System.currentTimeMillis()) {
         fun isValid(): Boolean {
-            // Define your cache expiration logic here
-            // For simplicity, let's say cache entries are valid for 1 minute
             return System.currentTimeMillis() - lastModified < 60000
         }
 
