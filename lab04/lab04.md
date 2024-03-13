@@ -4,6 +4,7 @@
 Разработайте прокси-сервер для проксирования веб-страниц. 
 Приложите скрины, демонстрирующие работу прокси-сервера. 
 
+
 ```
 @RestController
 @RequestMapping("/api/v1")
@@ -11,7 +12,7 @@ class ProxyController {
 
     val restTemplate = RestTemplate()
     val cache = ConcurrentHashMap<String, CacheEntry>()
-    val blacklist = listOf("youtube.com")
+    val blacklist = listOf("youtube.com", "amazon.com")
 
     @GetMapping("/public/proxy/{url}")
     fun proxyGet(@PathVariable url: String): ResponseEntity<String> {
