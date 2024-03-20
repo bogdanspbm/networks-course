@@ -103,7 +103,102 @@ Paint (на стороне сервера). Или запустить консо
 сервере) отправляется обратно клиенту.
 
 #### Демонстрация работы
-todo
+
+Сервер
+
+```
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.io.PrintWriter
+import java.net.ServerSocket
+import java.net.Socket
+
+fun main() {
+    val port = 8080
+
+    try {
+        val serverSocket = ServerSocket(port)
+        println("Сервер запущен...")
+
+        while (true) {
+            val clientSocket = serverSocket.accept()
+            println("Новое соединение: $clientSocket")
+
+            val clientHandler = ClientHandler(clientSocket)
+            Thread(clientHandler).start()
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+}
+
+class ClientHandler(private val clientSocket: Socket) : Runnable {
+    override fun run() {
+        try {
+            val reader = BufferedReader(InputStreamReader(clientSocket.getInputStream()))
+            val writer = PrintWriter(clientSocket.getOutputStream(), true)
+
+            val command = reader.readLine()
+            println("Принята команда от клиента: $command")
+
+            val process = Runtime.getRuntime().exec(command)
+            val processOutput = BufferedReader(InputStreamReader(process.inputStream))
+
+            var line: String?
+            while (processOutput.readLine().also { line = it } != null) {
+                writer.println(line)
+            }
+
+            process.waitFor()
+            reader.close()
+            writer.close()
+            clientSocket.close()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+}
+```
+
+Клиент
+
+```
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.io.PrintWriter
+import java.net.Socket
+
+fun main() {
+    val serverAddress = "localhost"
+    val serverPort = 8080
+
+    try {
+        val socket = Socket(serverAddress, serverPort)
+        val reader = BufferedReader(InputStreamReader(System.`in`))
+        val writer = PrintWriter(socket.getOutputStream(), true)
+        val serverReader = BufferedReader(InputStreamReader(socket.getInputStream()))
+
+        print("Введите команду для выполнения на сервере: ")
+        val command = reader.readLine()
+
+        writer.println(command)
+
+        var line: String?
+        while (serverReader.readLine().also { line = it } != null) {
+            println("Результат выполнения команды: $line")
+        }
+
+        reader.close()
+        writer.close()
+        serverReader.close()
+        socket.close()
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+}
+
+```
+
 
 ### В. Широковещательная рассылка через UDP (2 балла)
 Реализуйте сервер (веб-службу) и клиента с использованием интерфейса Socket API, которая:
