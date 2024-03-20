@@ -274,6 +274,8 @@ fun main() {
 
 ```
 
+<img src="./images/time.png" width=500 />
+
 ## Задачи
 
 ### Задача 1 (2 балла)
