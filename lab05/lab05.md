@@ -210,7 +210,69 @@ fun main() {
 - клиент службы выводит на консоль сообщаемое ему время
 
 #### Демонстрация работы
-todo
+
+Сервер
+
+```
+import java.net.DatagramPacket
+import java.net.DatagramSocket
+import java.net.InetAddress
+import java.util.*
+
+fun main() {
+    val serverPort = 12345 // Порт сервера
+    val broadcastInterval = 1000 // Интервал рассылки сообщений (в миллисекундах)
+    
+    val serverSocket = DatagramSocket(serverPort)
+    
+    println("Сервер запущен, ожидание клиентов...")
+    
+    while (true) {
+        try {
+            val currentTime = Date().toString()
+            val sendData = currentTime.toByteArray()
+            val sendPacket = DatagramPacket(sendData, sendData.size, InetAddress.getByName("255.255.255.255"), serverPort)
+            
+            serverSocket.send(sendPacket)
+            println("Сервер: Рассылка текущего времени: $currentTime")
+            
+            Thread.sleep(broadcastInterval.toLong())
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+}
+```
+
+Клиент
+
+```
+import java.net.DatagramPacket
+import java.net.DatagramSocket
+
+fun main() {
+    val clientPort = 8080
+
+    val clientSocket = DatagramSocket(clientPort)
+
+    println("Клиент запущен, ожидание сообщений от сервера...")
+
+    while (true) {
+        try {
+            val receiveData = ByteArray(1024)
+            val receivePacket = DatagramPacket(receiveData, receiveData.size)
+
+            clientSocket.receive(receivePacket)
+
+            val currentTime = String(receivePacket.data, 0, receivePacket.length)
+            println("Получено время от сервера: $currentTime")
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+}
+
+```
 
 ## Задачи
 
