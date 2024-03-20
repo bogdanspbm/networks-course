@@ -14,7 +14,32 @@
 Приложите скриншоты полученных сообщений (для обоих форматов).
 
 #### Демонстрация работы
-todo
+
+```
+@Service
+class DefaultEmailService : EmailService {
+
+    @Autowired
+    private lateinit var mailSender: JavaMailSender
+    override fun sendMail(mail: MailDTO): Boolean {
+        try {
+            val message =  SimpleMailMessage()
+
+            message.setTo(mail.recipient)
+            message.setSubject(mail.topic)
+            message.setText(mail.body)
+
+            mailSender.send(message)
+            return true
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        return false
+    }
+
+}
+```
 
 ### 2. SMTP-клиент (3 балла)
 Разработайте простой почтовый клиент, который отправляет текстовые сообщения
