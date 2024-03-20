@@ -60,6 +60,9 @@ class DefaultEmailService : EmailService {
     }
 ```
 
+<img src="./images/history.png" width=500 />
+<img src="./images/email_receive.png" width=500 />
+
 ### 2. SMTP-клиент (3 балла)
 Разработайте простой почтовый клиент, который отправляет текстовые сообщения
 электронной почты произвольному получателю. Программа должна соединиться с
