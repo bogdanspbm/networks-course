@@ -47,30 +47,16 @@ class DefaultEmailService : EmailService {
 Пример использования:
 
 ```
-    @PutMapping("/public/users")
-    fun CreateNewUser(
-        @RequestParam("login") login: String?,
-        @RequestParam("mail") mail: String?,
-        @RequestParam("password") password: String?
-    ): ResponseEntity<*> {
-        val user = UserDTO()
-        user.mail = mail ?: ""
-        user.login = login ?: ""
+    @PutMapping("/public/change-password")
+    fun RequestChangePassword(@RequestParam("mail") mail: String): HttpStatus {
+        val user = userRepository.getUserByMail(Mail(mail))
 
-        val newUserID = userRepository.createAccount(user, Password(password ?: ""))
-
-        if (newUserID == -1) {
-            return ResponseEntity("Can't Create Account", HttpStatus.INTERNAL_SERVER_ERROR)
+        if (user == null) {
+            return HttpStatus.OK
         }
 
-        user.id = newUserID
-
-        emailService.sendRegistrationConfirmMail(user)
-
-        val token: String = generateToken(user)
-        val response = JSONObject()
-        response.put("token", token)
-        return ResponseEntity(response.toString(), HttpStatus.OK)
+        emailService.sendChangePasswordMail(user)
+        return HttpStatus.OK
     }
 ```
 
