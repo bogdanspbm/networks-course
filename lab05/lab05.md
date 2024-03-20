@@ -23,11 +23,15 @@ class DefaultEmailService : EmailService {
     private lateinit var mailSender: JavaMailSender
     override fun sendMail(mail: MailDTO): Boolean {
         try {
-            val message =  SimpleMailMessage()
+            val message = mailSender.createMimeMessage()
+            val helper = MimeMessageHelper(message, true)
 
-            message.setTo(mail.recipient)
-            message.setSubject(mail.topic)
-            message.setText(mail.body)
+            helper.setTo(mail.recipient)
+            helper.setSubject(mail.topic)
+            helper.setText(mail.body)
+            if (mail.attachment != null && mail.attachmentFile != null) {
+                helper.addAttachment(mail.attachment!!, mail.attachmentFile!!)
+            }
 
             mailSender.send(message)
             return true
@@ -37,8 +41,37 @@ class DefaultEmailService : EmailService {
 
         return false
     }
-
 }
+```
+
+Пример использования:
+
+```
+    @PutMapping("/public/users")
+    fun CreateNewUser(
+        @RequestParam("login") login: String?,
+        @RequestParam("mail") mail: String?,
+        @RequestParam("password") password: String?
+    ): ResponseEntity<*> {
+        val user = UserDTO()
+        user.mail = mail ?: ""
+        user.login = login ?: ""
+
+        val newUserID = userRepository.createAccount(user, Password(password ?: ""))
+
+        if (newUserID == -1) {
+            return ResponseEntity("Can't Create Account", HttpStatus.INTERNAL_SERVER_ERROR)
+        }
+
+        user.id = newUserID
+
+        emailService.sendRegistrationConfirmMail(user)
+
+        val token: String = generateToken(user)
+        val response = JSONObject()
+        response.put("token", token)
+        return ResponseEntity(response.toString(), HttpStatus.OK)
+    }
 ```
 
 ### 2. SMTP-клиент (3 балла)
