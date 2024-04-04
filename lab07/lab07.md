@@ -92,6 +92,40 @@ todo
 Если пакет прибывает, то сервер просто изменяет символы входящего сообщения на заглавные и
 отправляет их обратно клиенту. Серверный код должен моделировать 20% потерю пакетов.
 
+
+```
+import java.net.DatagramPacket
+import java.net.DatagramSocket
+import java.util.*
+
+fun main() {
+    val serverPort = 12345 // Порт сервера
+    val socket = DatagramSocket(serverPort)
+    val random = Random()
+
+    println("Сервер запущен на порту $serverPort")
+
+    while (true) {
+        try {
+            val buffer = ByteArray(1024)
+            val packet = DatagramPacket(buffer, buffer.size)
+            socket.receive(packet)
+
+            // Симулируем 20% потерь пакетов
+            if (random.nextInt(100) >= 20) {
+                val received = String(packet.data, 0, packet.length).toUpperCase()
+                val sendData = received.toByteArray()
+                val sendPacket = DatagramPacket(sendData, sendData.size, packet.address, packet.port)
+                socket.send(sendPacket)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+}
+
+```
+
 ### Б. Клиентская часть (2 балла)
 Клиент должен отправить 10 эхо-запросов серверу. Поскольку UDP является ненадежным с точки
 зрения доставки протоколом, то пакет, отправленный от клиента к серверу или наоборот, может
@@ -114,8 +148,40 @@ todo
 
 Сделайте скриншоты, подтверждающие корректную работу вашей программы пингования со стороны клиента.
 
-#### Демонстрация работы
-todo
+```
+import java.net.DatagramPacket
+import java.net.DatagramSocket
+import java.net.InetAddress
+import java.util.*
+
+fun main() {
+    val serverAddress = InetAddress.getByName("127.0.0.1")
+    val serverPort = 12345
+    val socket = DatagramSocket()
+    socket.soTimeout = 1000 // Тайм-аут 1 секунда
+
+    for (i in 1..10) {
+        try {
+            val message = "Ping $i ${Date().time}"
+            val sendData = message.toByteArray()
+            val sendPacket = DatagramPacket(sendData, sendData.size, serverAddress, serverPort)
+            val startTime = System.currentTimeMillis()
+            socket.send(sendPacket)
+
+            val buffer = ByteArray(1024)
+            val receivePacket = DatagramPacket(buffer, buffer.size)
+            socket.receive(receivePacket)
+            val endTime = System.currentTimeMillis()
+
+            val modifiedSentence = String(receivePacket.data, 0, receivePacket.length)
+            println("ОТ сервера: $modifiedSentence, RTT: ${(endTime - startTime)} мс")
+        } catch (e: java.io.IOException) {
+            println("Request timed out")
+        }
+    }
+}
+
+```
 
 ### В. Вывод в формате ping (2 балла)
 Версия клиента из предыдущей части (Б) вычисляет время оборота для каждого пакета и выводит
@@ -126,8 +192,7 @@ todo
 конце каждого ответа от сервера. Дополнительно вычислите коэффициент потери пакетов (в
 процентах).
 
-#### Демонстрация работы
-todo
+<img src="images/client.png" width=600 />
 
 ### Г. UDP Heartbeat (4 балла)
 UDP Heartbeat (монитор доступности) подобен программе пингования. Он может быть
