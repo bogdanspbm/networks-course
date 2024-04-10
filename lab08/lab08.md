@@ -143,6 +143,11 @@ EOF sent, file transfer completed.
 File sent successfully.
 ```
 
+Скрин отправленного файла
+
+
+<img src="images/screen_a.png" width=700 />
+
 Сервер
 ```
 import java.io.ByteArrayOutputStream
@@ -209,6 +214,11 @@ Receiving file file_to_send.txt of size 14663 bytes
 EOF received, file transfer completed.
 file_to_send.txt saved successfully.
 ```
+
+Скрин полученного файла
+
+<img src="images/screen_b.png" width=700 />
+
 
 ### Б. Дуплексная передача (2 балла)
 Поддержите возможность пересылки данных в обоих направлениях: как от клиента к серверу, так и
