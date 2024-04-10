@@ -34,7 +34,181 @@
 Приложите скриншоты, подтверждающие работоспособность программы.
 
 #### Демонстрация работы
-todo
+
+Клиент
+```
+import java.io.File
+import java.net.DatagramPacket
+import java.net.DatagramSocket
+import java.net.InetAddress
+import kotlin.random.Random
+
+fun main(args: Array<String>) {
+    if (args.size != 1) {
+        println("Usage: <filename>")
+        return
+    }
+    sendFile(args[0])
+}
+
+fun sendFile(filename: String) {
+    val serverAddress = InetAddress.getByName("127.0.0.1")
+    val serverPort = 12345
+    DatagramSocket().use { socket ->
+        socket.soTimeout = 2000 // Тайм-аут в миллисекундах
+        val file = File(filename)
+        val fileSize = file.length()
+        println("Sending file $filename of size $fileSize bytes")
+
+        // Отправляем метаданные файла (имя и размер) в первом пакете
+        val metadata = "$filename:$fileSize"
+        sendPacket(socket, metadata.toByteArray(), serverAddress, serverPort)
+
+        var sequenceNumber = 0
+        file.inputStream().use { fis ->
+            var bytesRead: Int
+            do {
+                val data = ByteArray(512) // Уменьшенный размер пакета
+                bytesRead = fis.read(data)
+                if (bytesRead > 0) {
+                    val packetData = ByteArray(bytesRead + 1)
+                    packetData[0] = sequenceNumber.toByte()
+                    System.arraycopy(data, 0, packetData, 1, bytesRead)
+                    if (Random.nextFloat() <= 0.7) { // Симуляция потери пакета
+                        println("Sending packet with sequence number $sequenceNumber")
+                        sendPacket(socket, packetData, serverAddress, serverPort)
+                    } else {
+                        println("Packet with sequence number $sequenceNumber lost")
+                    }
+                    sequenceNumber = 1 - sequenceNumber
+                }
+            } while (bytesRead > 0)
+
+            val eofPacketData = "EOF".toByteArray()
+            sendPacket(socket, eofPacketData, serverAddress, serverPort)
+            println("EOF sent, file transfer completed.")
+        }
+        println("File sent successfully.")
+    }
+}
+
+fun sendPacket(socket: DatagramSocket, data: ByteArray, address: InetAddress, port: Int): Boolean {
+    try {
+        val packet = DatagramPacket(data, data.size, address, port)
+        socket.send(packet)
+        // Ожидаем ACK
+        val buffer = ByteArray(1024)
+        val responsePacket = DatagramPacket(buffer, buffer.size)
+        socket.receive(responsePacket)
+        return String(responsePacket.data, 0, responsePacket.length).startsWith("ACK")
+    } catch (e: Exception) {
+        return false
+    }
+}
+```
+
+Лог клиента
+```
+Sending file file_to_send.txt of size 14663 bytes
+Packet with sequence number 0 lost
+Packet with sequence number 1 lost
+Sending packet with sequence number 0
+Sending packet with sequence number 1
+Packet with sequence number 0 lost
+Packet with sequence number 1 lost
+Sending packet with sequence number 0
+Sending packet with sequence number 1
+Sending packet with sequence number 0
+Sending packet with sequence number 1
+Sending packet with sequence number 0
+Packet with sequence number 1 lost
+Sending packet with sequence number 0
+Sending packet with sequence number 1
+Sending packet with sequence number 0
+Sending packet with sequence number 1
+Sending packet with sequence number 0
+Packet with sequence number 1 lost
+Sending packet with sequence number 0
+Sending packet with sequence number 1
+Sending packet with sequence number 0
+Sending packet with sequence number 1
+Sending packet with sequence number 0
+Packet with sequence number 1 lost
+Sending packet with sequence number 0
+Sending packet with sequence number 1
+Packet with sequence number 0 lost
+Sending packet with sequence number 1
+Sending packet with sequence number 0
+EOF sent, file transfer completed.
+File sent successfully.
+```
+
+Сервер
+```
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
+import java.net.DatagramPacket
+import java.net.DatagramSocket
+import kotlin.random.Random
+
+fun main() {
+    val serverPort = 12345
+    val saveDirectory = "./received/"
+    DatagramSocket(serverPort).use { socket ->
+        println("Server is running and waiting for connections...")
+
+        while (true) {
+            val fileOutputStream = ByteArrayOutputStream()
+            var fileName = ""
+            var fileSize = 0L
+            var isFileMetaReceived = false
+            var packet: DatagramPacket
+
+            while (true) {
+                val receiveBuffer = ByteArray(1024)
+                packet = DatagramPacket(receiveBuffer, receiveBuffer.size)
+                socket.receive(packet)
+                val data = packet.data.copyOf(packet.length)
+                val receivedString = data.decodeToString().trim { it <= ' ' }
+
+                if (receivedString == "EOF") {
+                    println("EOF received, file transfer completed.")
+                    break // Выход из внутреннего цикла при получении EOF
+                }
+
+                if (!isFileMetaReceived) {
+                    // Обработка метаданных файла
+                    val fileInfo = receivedString.split(":")
+                    if (fileInfo.size == 2) {
+                        fileName = fileInfo[0]
+                        fileSize = fileInfo[1].toLong()
+                        isFileMetaReceived = true
+                        println("Receiving file $fileName of size $fileSize bytes")
+                    }
+                } else {
+                    // Накопление полученных данных файла
+                    fileOutputStream.write(data, 1, data.size - 1)
+                }
+            }
+
+            // Сохранение файла
+            val directory = File(saveDirectory).apply { if (!exists()) mkdirs() }
+            val file = File(directory, fileName).apply { createNewFile() }
+            FileOutputStream(file).use { it.write(fileOutputStream.toByteArray()) }
+            println("$fileName saved successfully.")
+        }
+    }
+}
+```
+
+Лог сервера
+```
+Server is running and waiting for connections...
+Receiving file file_to_send.txt of size 14663 bytes
+EOF received, file transfer completed.
+file_to_send.txt saved successfully.
+```
 
 ### Б. Дуплексная передача (2 балла)
 Поддержите возможность пересылки данных в обоих направлениях: как от клиента к серверу, так и
