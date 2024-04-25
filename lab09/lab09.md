@@ -88,7 +88,33 @@ Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.AddressState -eq "Prefe
 IP-адрес и диапазон портов должны передаваться в виде входных параметров.
 
 #### Демонстрация работы
-todo
+
+```
+param(
+    [string]$ipAddress,
+    [int]$startPort,
+    [int]$endPort
+)
+
+for ($port = $startPort; $port -le $endPort; $port++) {
+    $tcpClient = New-Object System.Net.Sockets.TcpClient
+    try {
+        $tcpClient.Connect($ipAddress, $port)
+    }
+    catch {
+        # Если соединение не установлено, значит порт свободен
+        "Port $port is available"
+    }
+    finally {
+        $tcpClient.Close()
+    }
+}
+```
+
+```
+.\CheckPorts.ps1 -ipAddress "192.168.1.1" -startPort 80 -endPort 100
+```
+
 
 ### 3. Широковещательная рассылка для подсчета копий приложения (6 баллов)
 Разработать приложение, подсчитывающее количество копий себя, запущенных в локальной сети.
