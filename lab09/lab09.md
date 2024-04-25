@@ -74,14 +74,47 @@ Traceroute отсылает первый пакет со значением TTL 
 Напишите консольное приложение, которое выведет IP-адрес вашего компьютера и маску сети на консоль.
 
 #### Демонстрация работы
-todo
+
+PowerShell
+```
+Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.AddressState -eq "Preferred" } | 
+    Select-Object InterfaceAlias, IPAddress, PrefixLength | 
+    Format-Table -AutoSize
+```
+
 
 ### 2. Доступные порты (2 балла)
 Выведите все доступные (свободные) порты в указанном диапазоне для заданного IP-адреса. 
 IP-адрес и диапазон портов должны передаваться в виде входных параметров.
 
 #### Демонстрация работы
-todo
+
+```
+param(
+    [string]$ipAddress,
+    [int]$startPort,
+    [int]$endPort
+)
+
+for ($port = $startPort; $port -le $endPort; $port++) {
+    $tcpClient = New-Object System.Net.Sockets.TcpClient
+    try {
+        $tcpClient.Connect($ipAddress, $port)
+    }
+    catch {
+        # Если соединение не установлено, значит порт свободен
+        "Port $port is available"
+    }
+    finally {
+        $tcpClient.Close()
+    }
+}
+```
+
+```
+.\CheckPorts.ps1 -ipAddress "192.168.1.1" -startPort 80 -endPort 100
+```
+
 
 ### 3. Широковещательная рассылка для подсчета копий приложения (6 баллов)
 Разработать приложение, подсчитывающее количество копий себя, запущенных в локальной сети.
@@ -105,7 +138,137 @@ todo
 <img src="images/copies.png" width=200 />
 
 #### Демонстрация работы
-todo
+
+```
+package org.example;
+
+import org.java_websocket.WebSocket;
+import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.handshake.ClientHandshake;
+import org.java_websocket.handshake.ServerHandshake;
+import org.java_websocket.server.WebSocketServer;
+
+import javax.swing.*;
+import java.awt.*;
+import java.net.InetSocketAddress;
+import java.net.URI;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+public class WebSocketApp {
+
+    private static final int PORT = 8080;
+    private static Map<String, Long> clients = Collections.synchronizedMap(new HashMap<>());
+    private static DefaultListModel<String> listModel = new DefaultListModel<>();
+
+    public static void main(String[] args) throws Exception {
+        startUI();
+        WebSocketServer server = new Server(new InetSocketAddress(PORT));
+        server.start();
+
+        UUID uid = UUID.randomUUID();
+        WebSocketClient client = new Client(new URI("ws://localhost:" + PORT), uid.toString());
+        client.connect();
+
+        Timer timer = new Timer(2000, e -> {
+            if (client.isOpen()) {
+                client.send(uid.toString());
+            }
+        });
+        timer.start();
+    }
+
+    private static void startUI() {
+        JFrame frame = new JFrame("WebSocket Clients");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(300, 300);
+        JList<String> list = new JList<>(listModel);
+        frame.add(new JScrollPane(list), BorderLayout.CENTER);
+        frame.setVisible(true);
+    }
+
+    private static class Server extends WebSocketServer {
+        public Server(InetSocketAddress address) {
+            super(address);
+        }
+
+        @Override
+        public void onOpen(WebSocket conn, ClientHandshake handshake) {
+            System.out.println("New connection: " + conn.getRemoteSocketAddress());
+        }
+
+        public boolean startSocketServer() {
+            try {
+                this.start();
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
+        }
+
+        @Override
+        public void onClose(org.java_websocket.WebSocket conn, int code, String reason, boolean remote) {
+            System.out.println("Closed connection: " + conn.getRemoteSocketAddress());
+        }
+
+        @Override
+        public void onMessage(org.java_websocket.WebSocket conn, String message) {
+            clients.put(message, System.currentTimeMillis());
+            broadcast(message);
+            if (!listModel.contains(message)) {
+                listModel.addElement(message);
+            }
+            System.out.println("Message from client: " + message);
+        }
+
+        @Override
+        public void onError(org.java_websocket.WebSocket conn, Exception ex) {
+            ex.printStackTrace();
+        }
+
+        @Override
+        public void onStart() {
+            System.out.println("Server started successfully");
+        }
+    }
+
+    private static class Client extends WebSocketClient {
+        private final String uid;
+
+        public Client(URI serverUri, String uid) {
+            super(serverUri);
+            this.uid = uid;
+        }
+
+        @Override
+        public void onOpen(ServerHandshake handshake) {
+            System.out.println("Opened connection for client: " + uid);
+        }
+
+        @Override
+        public void onMessage(String message) {
+            if (!listModel.contains(message)) {
+                listModel.addElement(message);
+            }
+            System.out.println("Server broadcast: " + message);
+        }
+
+        @Override
+        public void onClose(int code, String reason, boolean remote) {
+            listModel.removeElement(uid);
+            System.out.println("Closed connection for client: " + uid);
+        }
+
+        @Override
+        public void onError(Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+}
+```
+
 
 ## Задачи. Работа протокола TCP
 
