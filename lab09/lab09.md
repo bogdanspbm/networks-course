@@ -74,7 +74,14 @@ Traceroute отсылает первый пакет со значением TTL 
 Напишите консольное приложение, которое выведет IP-адрес вашего компьютера и маску сети на консоль.
 
 #### Демонстрация работы
-todo
+
+PowerShell
+```
+Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.AddressState -eq "Preferred" } | 
+    Select-Object InterfaceAlias, IPAddress, PrefixLength | 
+    Format-Table -AutoSize
+```
+
 
 ### 2. Доступные порты (2 балла)
 Выведите все доступные (свободные) порты в указанном диапазоне для заданного IP-адреса. 
