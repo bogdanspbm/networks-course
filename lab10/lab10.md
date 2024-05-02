@@ -118,7 +118,82 @@ Windows) или UDP-сегмент (в случае с Unix).
 **на разных континентах**.
 
 #### Демонстрация работы
-todo
+
+Скриншот на emkn
+
+```
+import socket
+import struct
+import time
+import select
+
+
+def checksum(source_string):
+    """ I'm a function to compute the checksum of our packet """
+    sum = 0
+    max_count = (len(source_string) / 2) * 2
+    count = 0
+    while count < max_count:
+        val = source_string[count + 1] * 256 + source_string[count]
+        sum = sum + val
+        sum = sum & 0xffffffff
+        count = count + 2
+    if max_count < len(source_string):
+        sum = sum + source_string[len(source_string) - 1]
+        sum = sum & 0xffffffff
+    sum = (sum >> 16) + (sum & 0xffff)
+    sum = sum + (sum >> 16)
+    answer = ~sum
+    answer = answer & 0xffff
+    answer = answer >> 8 | (answer << 8 & 0xff00)
+    return answer
+
+
+def create_packet(id):
+    """ Create a new echo request packet based on the given "id". """
+    header = struct.pack("bbHHh", 8, 0, 0, id, 1)
+    data = struct.pack("d", time.time())
+    my_checksum = checksum(header + data)
+    header = struct.pack("bbHHh", 8, 0, socket.htons(my_checksum), id, 1)
+    return header + data
+
+
+def ping(dest_addr, timeout=1, count=4):
+    """ Ping a given host """
+    icmp = socket.getprotobyname("icmp")
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, icmp)
+    except PermissionError:
+        raise Exception("Root privileges are required for ICMP messages.")
+
+    my_id = 0
+
+    # Send ping requests
+    for i in range(count):
+        packet_id = (my_id & 0xFFFF)
+        packet = create_packet(packet_id)
+        sent = sock.sendto(packet, (dest_addr, 1))
+        print(f"Sent ICMP Echo Request to {dest_addr}")
+
+        start = time.time()
+        ready = select.select([sock], [], [], timeout)
+        if ready[0]:
+            rec_packet, addr = sock.recvfrom(1024)
+            time_received = time.time()
+            rtt = time_received - start
+            print(f"Received ICMP Echo Reply from {addr} with RTT = {rtt:.5f} seconds")
+        else:
+            print("Request timed out.")
+
+        time.sleep(1)
+
+    sock.close()
+
+
+if __name__ == "__main__":
+    ping("google.com")
+```
+
 
 ### Задание Б (1 балл)
 Организуйте вывод на консоль так, как это сделано в стандартной утилите ping: нужно вывести
