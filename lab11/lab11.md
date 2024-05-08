@@ -130,6 +130,11 @@ canvas.bind("<ButtonPress-1>", start_new_line)
 def draw_line(data, color):
     x1, y1, x2, y2 = data
     canvas.create_line(x1, y1, x2, y2, fill=color)
+
+
+window.mainloop()
+
+client_socket.close()
 ```
 
 
@@ -183,8 +188,3 @@ window.mainloop()
 client_socket.close()
 server_socket.close()
 ```
-
-
-window.mainloop()
-
-client_socket.close()
