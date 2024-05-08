@@ -84,4 +84,107 @@ todo
 приложения. Предоставьте скриншот работы приложения.
 
 #### Демонстрация работы
-todo
+
+Client
+
+```
+import socket
+import pickle
+
+import tkinter as tk
+
+client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client_socket.connect(('localhost', 9999))
+
+window = tk.Tk()
+window.title("Client")
+
+canvas = tk.Canvas(window, width=500, height=500)
+canvas.pack()
+
+x_prev, y_prev = None, None
+
+
+def send_data(event):
+    global x_prev, y_prev
+    x, y = event.x, event.y
+    if x_prev and y_prev:
+        data = (x_prev, y_prev, x, y)
+        client_socket.send(pickle.dumps(data))
+        draw_line((x_prev, y_prev, x, y), 'green')
+
+    x_prev, y_prev = x, y
+
+
+canvas.bind("<B1-Motion>", send_data)
+
+
+def start_new_line(event):
+    global x_prev, y_prev
+    x_prev, y_prev = None, None
+
+
+canvas.bind("<ButtonPress-1>", start_new_line)
+
+
+def draw_line(data, color):
+    x1, y1, x2, y2 = data
+    canvas.create_line(x1, y1, x2, y2, fill=color)
+```
+
+
+Server
+
+```
+import socket
+import pickle
+import threading
+
+import tkinter as tk
+
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_socket.bind(('localhost', 9999))
+server_socket.listen(1)
+
+client_socket, client_address = server_socket.accept()
+print(f"Establish connection with {client_address}")
+
+window = tk.Tk()
+window.title("Server")
+
+canvas = tk.Canvas(window, width=500, height=500)
+canvas.pack()
+
+
+def draw_line(data):
+    x1, y1, x2, y2 = data
+    canvas.create_line(x1, y1, x2, y2, fill="black")
+
+
+def receive_data():
+    while True:
+        try:
+            data = client_socket.recv(1024)
+            if data:
+                data = pickle.loads(data)
+                draw_line(data)
+        except Exception as e:
+            print(e)
+
+            break
+
+
+receive_thread = threading.Thread(target=receive_data)
+receive_thread.daemon = True
+receive_thread.start()
+
+window.mainloop()
+
+client_socket.close()
+server_socket.close()
+```
+
+
+window.mainloop()
+
+client_socket.close()
